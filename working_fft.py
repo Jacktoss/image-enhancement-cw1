@@ -1,152 +1,143 @@
-import math
-import cmath
+from PIL import Image
+import numpy as np
+from working_fft import fft_2d_image
+from fft_shift import fft_shift
+from mag_spec import mag_spec
+import matplotlib.pyplot as plt
+from first_mask import create_mask1
+from second_mask import create_mask2
+from third_mask import create_mask3
+from ifft_shift import ifft_shift
+from working_ifft import ifft_2d_image
+
+photo_orig = Image.open('../dogDistorted.bmp') 
+
+# convert pixel values to greyscale and 2d list
+photo_grid = np.array(photo_orig.convert('L')).tolist()
+
+og_rows, og_cols = np.shape(photo_grid)
+
+frequency_domain = fft_2d_image(photo_grid)
+
+frequency_domain = fft_shift(frequency_domain)
+
+magnitude_spectrum = mag_spec(frequency_domain)
+#print(magnitude_spectrum)
+#print(frequency_domain)
+
+ms_np = np.array(magnitude_spectrum)
 
 
-def fft_one_level(x):
+# rows // 2  and cols // 2 as coords = center
+# if value is 12 < then prbably a star point or pont or collection
+# of points more likely
 
-    N = len(x)
+'''
+ok so kindof wokring but not. so some stars have like a max
+of 12 as the brightest. however other have 12 as a low birhgtnes
+value so there are hundrresds of +12 points on the grid
+though i am starting to see a pattern
 
-    if (N == 1): #base case
-        return x
-    
-    x_even = x[0::2]
-    x_odd = x[1::2] 
+for one there are always  5 stars with the same axis value
 
-    E = fft_one_level(x_even)
-    O = fft_one_level(x_odd)
-    '''
-    twiddle factors are complex exponential terms used in FFT to combine results
-    from smaller DFTs during each recursion
-
-    in DFT twiddle factors (complex exponentials) overalp
-     and repeat across even and odd parts. FFT splits the sum and ruses calculations
-     by combining symmetrical results to halve complexity at each level
-     O(n^2) to O(n log n)
-    '''
+given a snipped i think i can retroacdtivley (with the matplot diagram)
 
 
-    out_list = [0] * N
+sweet spot it 12.2 kinda
 
-    for k in range(int(N/2)): 
-        w = cmath.exp(-2j * math.pi * k / N)
-        out_list[k] = E[k] + w * O[k]
-        out_list[k + N//2] = E[k] - w * O[k]
-    '''
-    N/2 because its only ever gonna be working on either a even or odd
-    indexed list of numbers from original, answers worked up recursivley 
-    
-    calculations are reused by caclulation the FFT of the even and odd indexed
-    parts once and then combining the results with different twiddle factors
-    to produce all outputs
+I could just pick the heaviest axies?
+x-axis
+52
+154
+256 = centre
+358
+460
 
-    
-    '''
-    
-    return out_list
+y-axis
+cba to do yaxi also there isnt a single row or col coord that differs too much from these
 
 
-def next_power_of_2(n):
+given i found 256 had the most values over 12.21 confirms that the heaviest
+does equal the center coord 
+
+102 differndce up or down from center
+
+103 difference from surroundng to outer stars
+
+not too much 
 
 
-
-    if n < 0: return 2
-
-    if n % 1 != 0: return next_power_of_2(math.ceil(n))
-
-    
-    if math.log(n, 2) % 1 == 0: return n 
-        
-    return next_power_of_2(n+1)
-
-print(next_power_of_2(400))
-
-
-
-
-def transpose_2d(matrix):
-    """
-    Helper function to swap rows and columns of a 2D list.
-    """
-    # TODO: Implement this
-    # zip() turning each list within iterable into tuple, grouping elements by their index
-    
-    return list(map(list, zip(*matrix)))   # map() returns map objects 
-
-
-
-def pad_image(image_matrix):
-    """
-    Takes a 2D list of size H x W.
-    Pads it with zeros to the right and bottom so the new dimensions
-    are the next powers of 2. Returns the padded matrix.
-    """
-    # TODO: Implement this using next_power_of_2()
-
-    current_height = len(image_matrix)
-    current_width = len(image_matrix[0])
-    new_h = next_power_of_2(current_height) - current_height
-    new_w = next_power_of_2(current_width) - current_width   
-
-
-    for row in range(current_height):
-        image_matrix[row].extend([0] * (new_w))
-    
-
-
-    for _ in range(new_h):
-        image_matrix.append([0] * (current_width + new_w))
-    
-    return image_matrix
-
-
-
-def fft_2d_image(image_matrix):
-    """
-    The final 2D FFT function.
-    1. Pads the image to powers of 2.
-    2. Applies 1D FFT to each row.
-    3. Applies 1D FFT to each column of the result.
-    Returns a 2D list of complex numbers.
-    """
-    #Pad the image
-    image_matrix = pad_image(image_matrix)
-
-    rows = len(image_matrix)
-    cols = len(image_matrix[0])
-
-    #Perform row-wise FFT
-    for row in range(rows):
-        image_matrix[row] = fft_one_level(image_matrix[row]) 
-
-    #Perform column-wise FFT (hint: use transpose_2d)
-    
-    image_matrix = transpose_2d(image_matrix)
-
-    for col in range(cols):
-        image_matrix[col] = fft_one_level(image_matrix[col])
-
-    image_matrix = transpose_2d(image_matrix)
-
-
-    return image_matrix
-
-
-# change test later
-if __name__ == "__main__":
-    test_image = [
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 9]
-    ]
-    result = fft_2d_image(test_image)
-    print(f"Result dimensions: {len(result)}x{len(result[0])}")
-    dc_component = result[0][0]  # Direct Current essentialy repsresenting zero frequency of the image (sum of all pixel values in image)
-    print(f"DC Component (F[0][0]): {dc_component}")
-
+print(np.argwhere(ms_np > 12.21))
 
 
 '''
-Hermitian Symmetry is how the fourier transform creates a complex conjugate
-of exactly at exactly the opposite location. (u,v) -> F(-u,-v)
+
+s_l1 = [51,154,256,358,461] # list of either possible x or y values of target noise
+# the space between them being 102 or 103
+
+#star_coords = [[0 for _ in range(5)] for _ in range(5)]
+star_coords = []
+for i in range(5):
+    for j in range(5):
+        star_coords.append([s_l1[i], s_l1[j]])
+
+#print(star_coords)
+
+#mnf_mask = create_mask2(512, 512, star_coords, 5)
+
+#radius of dc noise is about 75
+cnf_mask = create_mask3(512, 512, s_l1, 75, 102, 5)
+
+mnf_mask = create_mask2(512, 512, star_coords, 5)
+
+fd_np = np.array(frequency_domain)
+
+
+#fd_mnf_applied = fd_np * mnf_mask
+#fd_cnf_applied = fd_np * cnf_mask
+
+fd_cmnf_applied = fd_np * mnf_mask * cnf_mask
+
+# Matplotlib cannot show complex number but can show are mag spectrum of the masked fd iamge
+
+show = mag_spec(fd_cmnf_applied)
+
+
+
+fd_ishifted = ifft_shift(fd_cmnf_applied)
+
+in_mat = ifft_2d_image(fd_ishifted, og_rows, og_cols) 
+
+
+
+
+#after ifft
+#img_cropped = in_np[0:og_rows, 0:og_width]
 
 '''
+plt.figure(figsize=(8, 8))
+plt.imshow(magnitude_spectrum, cmap='gray')
+plt.title("shifted mag spec")
+plt.axis('on')
+plt.show()
+
+
+
+plt.figure(figsize=(8, 8))
+plt.imshow(show, cmap='gray')
+plt.title("cumc")
+plt.axis('on')
+plt.show()
+
+
+
+fd_unshifted = ifft_shift(fd_cmnf_applied) # Or use np.fft.ifftshift if you use numpy
+# 3. Inverse FFT
+in_np = np.fft.ifft2(fd_unshifted)
+in_np = in_np.real
+
+'''
+np_o = np.array(in_mat)
+Image.fromarray(np_o).convert('L').save('output.png')
+
+
