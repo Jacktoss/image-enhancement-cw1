@@ -9,6 +9,9 @@ from second_mask import create_mask2
 from third_mask import create_mask3
 from ifft_shift import ifft_shift
 from working_ifft import ifft_2d_image
+from mean_filter import mean_filter
+from median_filter import med_filter
+
 
 photo_orig = Image.open('../dogDistorted.bmp') 
 
@@ -86,9 +89,9 @@ for i in range(5):
 #mnf_mask = create_mask2(512, 512, star_coords, 5)
 
 #radius of dc noise is about 75
-cnf_mask = create_mask3(512, 512, s_l1, 75, 102, 5)
+cnf_mask = create_mask3(512, 512, s_l1, 75, 102, 25) #25 or 20 seems to be best
 
-mnf_mask = create_mask2(512, 512, star_coords, 5)
+mnf_mask = create_mask2(512, 512, star_coords, 25)
 
 fd_np = np.array(frequency_domain)
 
@@ -138,5 +141,19 @@ in_np = in_np.real
 
 '''
 np_o = np.array(in_mat)
-Image.fromarray(np_o).convert('L').save('output.bmp')
+
+#np_o = mean_filter(np_o, 5) # always 3x3, any bigger and more blur will occur. even this makes it blury
+
+np_o = med_filter(np_o, 3)
+
+
+Image.fromarray(np_o).convert('L').save('test_output.bmp')
+
+
+
+
+
+
+
+
 
