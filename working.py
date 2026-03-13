@@ -138,5 +138,5 @@ in_np = in_np.real
 
 '''
 np_o = np.array(in_mat)
-Image.fromarray(np_o).convert('L').save('output.png')
+Image.fromarray(np_o).convert('L').save('output.bmp')
 
