@@ -122,9 +122,9 @@ to avoid the DC component's noise
 
 '''
 
-mnf_mask = multi_nf(512, 512, star_coords, 25) # Multi-notch frequency mask
+mnf_mask = multi_nf(512, 512, star_coords, 40) # Multi-notch frequency mask
 
-cnf_mask = custom_nf(512, 512, s_l1, 75, 102, 25) # Custom-notch frequency mask
+cnf_mask = custom_nf(512, 512, s_l1, 75, 102, 40) # Custom-notch frequency mask
 
 
 #fd_mnf_applied = fd_np * mnf_mask
